@@ -1,8 +1,7 @@
 import fs = require('fs');
 import path = require('path');
 import Dedupe from './index';
-
-var config = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
+var config = require('./package.json');
 
 process.title = config.name;
 
