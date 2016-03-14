@@ -1,0 +1,41 @@
+{
+  "name": "de-dupe",
+  "version": "0.0.1",
+  "description": "Deduplicate strings from javascript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc && npm run build:index && npm run build:cli",
+    "build:cli": "babel cli.js > cli-tmp.js && mv -f cli-tmp.js cli.js",
+    "build:index": "babel index.js > index-tmp.js && mv -f index-tmp.js index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/markistaylor/de-dupe.git"
+  },
+  "keywords": [
+    "minify",
+    "dedupify",
+    "dedupe",
+    "strings"
+  ],
+  "author": "Markis Taylor <m@rkis.cc>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/markistaylor/de-dupe/issues"
+  },
+  "homepage": "https://github.com/markistaylor/de-dupe#readme",
+  "devDependencies": {
+    "acorn": "^3.0.4",
+    "babel-cli": "^6.6.5",
+    "babel-preset-es2015": "^6.6.0",
+    "escodegen": "^1.8.0",
+    "escope": "^3.6.0",
+    "esmangle": "^1.0.1",
+    "esprima": "^2.7.2",
+    "esshorten": "^1.1.1",
+    "estraverse": "^4.2.0",
+    "typescript": "^1.8.7",
+    "uglify-js": "^2.6.2"
+  }
+}

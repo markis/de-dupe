@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "noImplicitAny": false,
+        "sourceMap": false,
+        "declaration": true
+    },
+    "files": [
+      "cli.ts", "index.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
