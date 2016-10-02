@@ -1,7 +1,9 @@
-import fs = require('fs');
-import path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
+
 import Dedupe from './index';
-var config = require('./package.json');
+
+const config = require('./package.json');
 
 process.title = config.name;
 
@@ -25,6 +27,10 @@ if (!options.showHelp && options.files.length > 0) {
     });
   }
 } else {
+  printHelp();
+}
+
+function printHelp() {
   console.log(
     config.name + ' ' + config.version + '\n' +
     '\n' +

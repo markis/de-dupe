@@ -1,17 +1,25 @@
-/// <reference path="interfaces/_global.d.ts" />
-import parser = require('esprima');
-import scopeFinder = require('escope');
-import codeGenerator = require('escodegen');
-import walker = require('estraverse');
-import mangler = require('esshorten');
-import optimizer = require('esmangle');
-import uglifyjs = require('uglify-js');
+import Namer, { TrackVariable } from './namer';
+
+import * as parser from 'esprima';
+import * as estree from 'estree';
+import * as scopeFinder from 'escope';
+import * as codeGenerator from 'escodegen';
+import * as walker from 'estraverse';
+// import * as mangler from 'esshorten';
+// import * as optimizer from 'esmangle';
+import * as uglifyjs from 'uglify-js';
 
 import Visitor = estraverse.Visitor;
-import VariableDeclarator = ESTree.VariableDeclarator;
 import ScopeManager = escope.ScopeManager;
 import Scope = escope.Scope;
+import BlockStatement = ESTree.BlockStatement;
+import Function = ESTree.Function;
+import Identifier = ESTree.Identifier;
 import Literal = ESTree.Literal;
+import Node = ESTree.Node;
+import Program = ESTree.Program;
+import VariableDeclarator = ESTree.VariableDeclarator;
+import VariableDeclaration = ESTree.VariableDeclaration;
 
 export interface DedupeOptions {
   /**
@@ -25,179 +33,220 @@ export interface DedupeOptions {
   cleanStrings: boolean;
 }
 
-const _defaultOptions: DedupeOptions = {
+export interface VariablesDeclarations {
+  declarations: VariableDeclarator[];
+  kind: 'var';
+  type: 'VariableDeclaration';
+}
+
+export interface StringInstance {
+  node: Node;
+  parent: Node;
+  scope: Scope;
+  value: string;
+}
+
+export interface TrackInstances {
+  (node: Node, parent: Node, scope: Scope, value: string): void;
+}
+
+export type StringMap = Map<String, StringInstance[]>
+
+const defaultOptions: DedupeOptions = {
   addScope: false,
   cleanStrings: false,
   minInstances: 5
 };
 
 export default class Dedupe {
-  private options:DedupeOptions;
-  constructor(options: DedupeOptions = _defaultOptions) {
-    this.options = _defaultOptions;
+  private namer: Namer;
+  private options: DedupeOptions;
+  private generatedCount = 0;
+  private variablesDeclarations: VariablesDeclarations = {
+    type: 'VariableDeclaration',
+    declarations: <VariableDeclarator[]>[],
+    kind: 'var'
+  };
+
+  constructor(options: DedupeOptions = defaultOptions, namer: Namer = new Namer()) {
+    this.namer = namer;
+    this.options = defaultOptions;
     Object.assign(this.options, options);
   }
-  dedupe(code: string): any {
+
+  dedupe(code: string): string {
     if (this.options.addScope === true) {
       code = `!function(){${code}}()`
     }
 
     let ast = parser.parse(code);
-    const scopeManager: ScopeManager = scopeFinder.analyze(ast);
-    const globalScope: Scope = scopeManager.acquire(ast);   // global scope
+    let strings: StringMap;
+    const scopeManager = <ScopeManager> scopeFinder.analyze(ast);
+    const globalScope = <Scope> scopeManager.acquire(ast);
     const scopes = globalScope.childScopes;
-    let strings: Map<string, any>;
+    const trackVariable = this.namer.trackVariable.bind(this.namer);
 
     for (let i = 0; i < scopes.length; i++) {
-      this.__variablesDeclarations = {
-        type: 'VariableDeclaration',
-        declarations: <ESTree.VariableDeclarator[]>[],
-        kind: 'var'
+      this.variablesDeclarations = {
+        declarations: [],
+        kind: 'var',
+        type: 'VariableDeclaration'
       };
-      const scope: Scope = scopes[i];
-      const block: ESTree.Function = <ESTree.Function>scope.block;
-      const body: ESTree.BlockStatement = <ESTree.BlockStatement>block.body;
-      strings = this.findStrings(scope);
-      this.change(strings);
-      if (this.__variablesDeclarations.declarations.length > 0) {
-        body.body.splice(0, 0, this.__variablesDeclarations);
+      const scope = <Scope> scopes[i];
+      const block = <Function> scope.block;
+      const body = <BlockStatement> block.body;
+      strings = new Map();
+      firstwalk(scope, trackVariable, trackInstances(strings));
+      this.change(scope, strings);
+
+      // strings = this.findstrings(scope);
+      // this.change(scope, strings);
+      if (this.variablesDeclarations.declarations.length > 0) {
+        body.body.splice(0, 0, this.variablesDeclarations);
       }
     }
 
-    mangler.mangle(ast);
-    const mangledAst = this.uglify(ast);
+    // mangler.mangle(ast, { destructive: true });
+    // const mangledAst = this.uglify(ast);
 
-    return codeGenerator.generate(mangledAst, {
+    return codeGenerator.generate(ast, {
       format: {
         escapeless: true,
         quotes: 'auto',
-        compact: true,
+        compact: false,
         semicolons: false,
         parentheses: false
       }
     });
   }
 
-  private uglify(ast: ESTree.Program): ESTree.Program {
-    var uglify: any = uglifyjs;
+  private uglify(ast: Program): Program {
+    const uglify: any = uglifyjs;
 
     // Conversion from SpiderMonkey AST to internal format
-    var uAST = uglify.AST_Node.from_mozilla_ast(ast);
+    const uAST = uglify.AST_Node.from_mozilla_ast(ast);
 
     // Compression
     uAST.figure_out_scope();
-    uAST = uAST.transform(uglify.Compressor({ warnings: false }));
+    const uASTTransform = uAST.transform(uglify.Compressor({ warnings: false }));
 
     // Mangling (optional)
-    uAST.figure_out_scope();
-    uAST.compute_char_frequency();
-    uAST.mangle_names();
+    uASTTransform.figure_out_scope();
+    uASTTransform.compute_char_frequency();
+    uASTTransform.mangle_names();
 
     // Back-conversion to SpiderMonkey AST
     return uAST.to_mozilla_ast();
   }
 
-  private findStrings(scope: Scope): Map<string, any[]> {
-    let block: ESTree.Node, strings: Map<string, any[]>, instances:any[];
-    strings = <Map<string, any[]>>new Map();
-    block = scope.block;
-    walker.traverse(block, <Visitor>{
-      enter: (node, parent) => {
-        const literal = <ESTree.Literal>node, value: string = <string>literal.value;
-        if (literal.type === 'Literal' && typeof value === 'string' && parent.type !== 'Property') {
-
-          instances = strings.get(value);
-          if (!instances) {
-            instances = [];
-            strings.set(value, instances);
-          }
-
-          instances.push({node, parent});
-        }
-      }
-    });
-    return strings;
-  }
-
-  private change(strings: Map<string, any[]>): void {
-    for (let [key, instances] of strings.entries()) {
+  private change(scope: Scope, strings: StringMap): void {
+    strings.forEach((instances: StringInstance[], key: string) => {
       if (key && instances && Array.isArray(instances)) {
         this.cleanStrings(instances);
-        //if (key.length > 10 && instances.length > 5) {
-        //  this.replaceInstances(instances[0], key);
-        //} else
         if (instances.length > this.options.minInstances) {
           this.replaceInstances(instances, key);
         }
       }
-    }
+    });
   }
 
-  private replaceInstances(instances: any[], key: string): void {
-    let instance,
-      newVariable = this.generateNewVariable(key),
-      name = newVariable.id['name'];
+  private replaceInstances(scope: Scope, instances: StringInstance[], key: string): void {
+    const newVariable = this.namer.generateNewVariable(scope, key);
+    const identifier = <Identifier> newVariable.id;
 
-    for (let i = 0; i < instances.length; i++) {
-      instance = instances[i];
-      walker.replace(instance.parent, <Visitor>{
-        enter: function (node) {
-          if (node === instance.node) {
-            return <ESTree.Node>{
-              type: "Identifier",
-              name: name
-            }
-          }
-        }
+    this.variablesDeclarations.declarations.push(newVariable);
+    for (let i = 0, instance = instances[i]; i < instances.length; i++) {
+      walker.replace(instance.parent, <Visitor> {
+        enter: replacer(instance, identifier.name)
       });
     }
   }
 
-  private cleanStrings(instances): void {
+  private cleanStrings(instances: StringInstance[]): void {
     if (this.options.cleanStrings) {
-      let instance;
-      for (let i = 0; i < instances.length; i++) {
-        instance = instances[i];
-        walker.replace(instance.parent, <Visitor>{
-          enter: function (node: Literal) {
-            if (node === instance.node) {
-              let value = <string>node.value,
-                quote = value.charAt(0);
-              node.value = value = Dedupe.cleanString(value);
-              node.raw = quote + value + quote;
-              return node;
-            }
-          }
+      for (let i = 0, instance = instances[i]; i < instances.length; i++) {
+        walker.replace(instance.parent, <Visitor> {
+          enter: cleaner(instance)
         });
       }
     }
   }
 
-  private __generatedCount = 0;
-  private __variablesDeclarations = {
-    type: 'VariableDeclaration',
-    declarations: <ESTree.VariableDeclarator[]>[],
-    kind: 'var'
-  };
-  private generateNewVariable(value: string): ESTree.VariableDeclarator {
+  private generateNewVariable(scope: Scope, value: string): VariableDeclarator {
     const newDeclarator = {
       type: 'VariableDeclarator',
-      id: <ESTree.Identifier>{
+      id: <Identifier>{
         type: 'Identifier',
-        name: `dedupe${this.__generatedCount++}`
+        name: `dedupe${this.generatedCount++}`
       },
-      init: <ESTree.Literal>{
+      init: <Literal>{
         type: 'Literal',
         value: value,
         raw: `"${value}"`
       }
     };
-    this.__variablesDeclarations.declarations.push(newDeclarator);
+    this.variablesDeclarations.declarations.push(newDeclarator);
     return newDeclarator;
   }
+}
 
-  private static cleanString(value: string): string {
-    return value.replace(/\s+/g, ' ');
+function firstwalk(scope: Scope, trackVariable: TrackVariable, trackInstances: TrackInstances) {
+  const block: Node = scope.block;
+  walker.traverse(block, <Visitor> {
+    enter: (node, parent) => {
+      let instances: StringInstance[];
+      const literal = <Literal> node;
+      const variable = <VariableDeclarator> node;
+      const value = <string> literal.value;
+
+      if (node.type === 'VariableDeclarator') {
+        const id = <Identifier> variable.id;
+        trackVariable(scope, id.name);
+      } else if (literal.type === 'Literal' && typeof value === 'string' && parent.type !== 'Property') {
+        trackInstances(node, parent, scope, value);
+      }
+    }
+  });
+}
+
+function trackInstances(strings: StringMap) {
+  return (node: Node, parent: Node, scope: Scope, value: string) => {
+    let instances = strings.get(value);
+    if (!instances) {
+      instances = [];
+      strings.set(value, instances);
+    }
+    instances.push({ node, parent, scope, value });
   }
+}
 
+function replacer(instance: StringInstance, name: string) {
+  return (node) => {
+    const instanceLiteral = <Literal> instance.node;
+    const literal = <Literal> node;
+    if (node === instance.node ||
+      node.type === 'Literal' && literal.value === instanceLiteral.value) {
+
+      return <Node> {
+        type: "Identifier",
+        name: name
+      }
+    }
+  };
+}
+
+function cleaner(instance: StringInstance) {
+  return (node: Literal) => {
+    if (node === instance.node) {
+      let value = node.value as string;
+      const quote = value.charAt(0);
+      node.value = value = cleanString(value);
+      node.raw = quote + value + quote;
+      return node;
+    }
+  }
+}
+
+function cleanString(value: string): string {
+  return value.replace(/\s+/g, ' ');
 }
