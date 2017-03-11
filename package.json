@@ -6,9 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc && npm run build:index && npm run build:cli",
-    "build:cli": "babel cli.js > cli-tmp.js && mv -f cli-tmp.js cli.js",
-    "build:index": "babel index.js > index-tmp.js && mv -f index-tmp.js index.js"
+    "build": "rollup -c"
   },
   "repository": {
     "type": "git",
@@ -27,24 +25,25 @@
   },
   "homepage": "https://github.com/markistaylor/de-dupe#readme",
   "dependencies": {
-    "acorn": "^3.3.0",
+    "acorn": "^4.0.11",
     "escodegen": "^1.8.1",
     "escope": "^3.6.0",
     "esmangle": "^1.0.1",
-    "esprima": "^2.7.3",
+    "esprima": "^3.1.3",
     "esshorten": "^1.1.1",
     "estraverse": "^4.2.0",
-    "uglify-js": "^2.6.2"
+    "uglify-js": "^2.8.12"
   },
   "devDependencies": {
-    "@types/acorn": "^1.0.31",
+    "@types/acorn": "^4.0.1",
     "@types/escodegen": "0.0.6",
     "@types/esprima": "^2.1.33",
     "@types/estraverse": "0.0.6",
     "@types/estree": "0.0.34",
-    "@types/node": "^6.0.41",
-    "rollup": "^0.36.0",
+    "@types/node": "^7.0.8",
+    "@types/uglify-js": "^2.6.28",
+    "rollup": "^0.41.5",
     "rollup-plugin-typescript": "^0.8.1",
-    "typescript": "^1.8.7"
+    "typescript": "^2.2.1"
   }
 }

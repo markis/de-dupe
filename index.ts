@@ -1,25 +1,12 @@
-import Namer, { TrackVariable } from './namer';
+import { Namer, TrackVariable } from './namer';
 
-import * as parser from 'esprima';
-import * as estree from 'estree';
-import * as scopeFinder from 'escope';
-import * as codeGenerator from 'escodegen';
-import * as walker from 'estraverse';
-// import * as mangler from 'esshorten';
-// import * as optimizer from 'esmangle';
-import * as uglifyjs from 'uglify-js';
-
-import Visitor = estraverse.Visitor;
-import ScopeManager = escope.ScopeManager;
-import Scope = escope.Scope;
-import BlockStatement = ESTree.BlockStatement;
-import Function = ESTree.Function;
-import Identifier = ESTree.Identifier;
-import Literal = ESTree.Literal;
-import Node = ESTree.Node;
-import Program = ESTree.Program;
-import VariableDeclarator = ESTree.VariableDeclarator;
-import VariableDeclaration = ESTree.VariableDeclaration;
+import { parse } from 'esprima';
+import { analyze, Scope, ScopeManager } from 'escope';
+import { BlockStatement, Function, Identifier, Literal, Node, Program, VariableDeclaration, VariableDeclarator } from 'estree';
+import { Visitor } from 'estraverse';
+import { generate } from 'escodegen';
+import { replace, traverse } from 'estraverse';
+import * as uglify from 'uglify-js';
 
 export interface DedupeOptions {
   /**
@@ -27,7 +14,7 @@ export interface DedupeOptions {
    */
   addScope: boolean;
   /**
-   * Removes duplicate spaces from strings, usually strings in javascript render to the DOM and more than one space in
+   * emoves duplicate spaces from strings, usually strings in javascript render to the DOM and more than one space in
    * the DOM is ignored and just bloats scripts
    */
   cleanStrings: boolean;
@@ -79,9 +66,9 @@ export default class Dedupe {
       code = `!function(){${code}}()`
     }
 
-    let ast = parser.parse(code);
+    let ast = parse(code);
     let strings: StringMap;
-    const scopeManager = <ScopeManager> scopeFinder.analyze(ast);
+    const scopeManager = <ScopeManager> analyze(ast);
     const globalScope = <Scope> scopeManager.acquire(ast);
     const scopes = globalScope.childScopes;
     const trackVariable = this.namer.trackVariable.bind(this.namer);
@@ -109,7 +96,7 @@ export default class Dedupe {
     // mangler.mangle(ast, { destructive: true });
     // const mangledAst = this.uglify(ast);
 
-    return codeGenerator.generate(ast, {
+    return generate(ast, {
       format: {
         escapeless: true,
         quotes: 'auto',
@@ -121,10 +108,10 @@ export default class Dedupe {
   }
 
   private uglify(ast: Program): Program {
-    const uglify: any = uglifyjs;
+    const AST_Node = (uglify as any).AST_Node;
 
     // Conversion from SpiderMonkey AST to internal format
-    const uAST = uglify.AST_Node.from_mozilla_ast(ast);
+    const uAST = AST_Node.from_mozilla_ast(ast);
 
     // Compression
     uAST.figure_out_scope();
@@ -156,7 +143,7 @@ export default class Dedupe {
 
     this.variablesDeclarations.declarations.push(newVariable);
     for (let i = 0, instance = instances[i]; i < instances.length; i++) {
-      walker.replace(instance.parent, <Visitor> {
+      replace(instance.parent, <Visitor> {
         enter: replacer(instance, identifier.name)
       });
     }
@@ -165,7 +152,7 @@ export default class Dedupe {
   private cleanStrings(instances: StringInstance[]): void {
     if (this.options.cleanStrings) {
       for (let i = 0, instance = instances[i]; i < instances.length; i++) {
-        walker.replace(instance.parent, <Visitor> {
+        replace(instance.parent, <Visitor> {
           enter: cleaner(instance)
         });
       }
@@ -184,7 +171,7 @@ export default class Dedupe {
         value: value,
         raw: `"${value}"`
       }
-    };
+    } as VariableDeclarator;
     this.variablesDeclarations.declarations.push(newDeclarator);
     return newDeclarator;
   }
@@ -192,8 +179,8 @@ export default class Dedupe {
 
 function firstwalk(scope: Scope, trackVariable: TrackVariable, trackInstances: TrackInstances) {
   const block: Node = scope.block;
-  walker.traverse(block, <Visitor> {
-    enter: (node, parent) => {
+  traverse(block, <Visitor> {
+    enter: (node: Node, parent: Node) => {
       let instances: StringInstance[];
       const literal = <Literal> node;
       const variable = <VariableDeclarator> node;
@@ -221,7 +208,7 @@ function trackInstances(strings: StringMap) {
 }
 
 function replacer(instance: StringInstance, name: string) {
-  return (node) => {
+  return (node: Node) => {
     const instanceLiteral = <Literal> instance.node;
     const literal = <Literal> node;
     if (node === instance.node ||

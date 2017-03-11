@@ -1,9 +1,4 @@
-import * as scopeFinder from 'escope';
-
-import Scope = escope.Scope;
-import Identifier = ESTree.Identifier;
-import Literal = ESTree.Literal;
-import VariableDeclarator = ESTree.VariableDeclarator
+import { Identifier, Literal, Scope, VariableDeclarator } from 'escope';
 
 export interface TrackedScope extends Scope {
   allVariables: Set<String>;
@@ -13,7 +8,7 @@ export interface TrackVariable {
   (scope: Scope, name: string): void;
 }
 
-export default class Namer {
+export class Namer {
   private generatedCount: number = 0;
 
   public trackVariable(scope: Scope, name: string) {

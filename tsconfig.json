@@ -2,9 +2,15 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es5",
-    "outDir": "built",
-    "noImplicitAny": false,
+    "outDir": "tmp",
+    "lib": [ "es6" ],
+    "typeRoots": [
+      "./node_modules/@types/",
+      "./types/"
+    ],
+    "noImplicitAny": true,
     "sourceMap": false,
-    "declaration": true
+    "declaration": true,
+    "strictNullChecks": true
   }
 }

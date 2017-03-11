@@ -1,9 +1,8 @@
-import * as fs from 'fs';
-import * as path from 'path';
-
+import { readFile, writeFile } from 'fs';
+import { resolve } from 'path';
 import Dedupe from './index';
-
 const config = require('./package.json');
+declare type Process = typeof process;
 
 process.title = config.name;
 
@@ -11,7 +10,7 @@ var options = parseArguments(process);
 if (!options.showHelp && options.files.length > 0) {
   for (var i = 0; i < options.files.length; i++) {
     let file = options.files[i];
-    fs.readFile(file, 'utf-8', function(err, code) {
+    readFile(file, 'utf-8', function(err, code) {
       if (err) {
         console.error(err);
       } else {
@@ -22,7 +21,7 @@ if (!options.showHelp && options.files.length > 0) {
         var dedupe = new Dedupe(dedupeOptions);
 
         var ast = dedupe.dedupe(code);
-        fs.writeFile('./output.js', ast);
+        writeFile('./output.js', ast);
       }
     });
   }
@@ -42,17 +41,17 @@ function printHelp() {
   );
 }
 
-function parseArguments(process) {
+function parseArguments(process: Process) {
   var options = {
     addScope: false,
     cleanString: false,
     showHelp: true,
-    files: []
+    files: [] as string[]
   };
   var parseFiles = false;
-  process.argv.forEach(function (val) {
+  process.argv.forEach((val) => {
     if (parseFiles) {
-      options.files.push(path.resolve(val));
+      options.files.push(resolve(val));
     } else {
       switch (val) {
         case '--addScope':

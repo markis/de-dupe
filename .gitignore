@@ -1,4 +1,6 @@
 built/
 node_modules/
+tmp/
 .idea/
+.vscode/
 *.js
