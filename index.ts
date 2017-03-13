@@ -27,7 +27,8 @@ export interface DedupeOptions {
 
 const _defaultOptions: DedupeOptions = {
   addScope: false,
-  cleanStrings: false
+  cleanStrings: false,
+  minInstances: 5
 };
 
 export default class Dedupe {
@@ -125,7 +126,7 @@ export default class Dedupe {
         //if (key.length > 10 && instances.length > 5) {
         //  this.replaceInstances(instances[0], key);
         //} else
-        if (instances.length > 5) {
+        if (instances.length > this.options.minInstances) {
           this.replaceInstances(instances, key);
         }
       }
