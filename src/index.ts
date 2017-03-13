@@ -77,7 +77,7 @@ export default class Dedupe {
     for (let i = 0, length = topLevelScopes.length; i < length; i++) {
       this.attempt = 0;
       const startingPos = this.getStartingPositionOfScope(topLevelScopes[i]);
-      const usedNames = usedIdentifiers; //this.getUsedVariableNames(usedIdentifiers, topLevelScopes[i]);
+      const usedNames = this.getUsedVariableNames(usedIdentifiers, topLevelScopes[i]);
       const stringMap = this.getStringMap(topLevelScopes[i]);
       const scopeReplacements = this.getStringReplacements(stringMap, startingPos, usedNames);
       replacements = replacements.concat(scopeReplacements);
