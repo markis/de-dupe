@@ -202,19 +202,19 @@ export default class Dedupe {
   }
 
   private sortReplacements(replacements: StringReplacement[]) {
-    return replacements.sort((a, b) => a.start > b.start ? -1 : a.start < b.start ? 1 : 0);
+    return replacements.sort((a, b) => a.start > b.start ? 1 : a.start < b.start ? -1 : 0);
   }
 
   private makeAllReplacements(code: string, sortedReplacements: StringReplacement[]): string {
     const codeBuffer = [];
-    let curser = code.length;
+    let cursor = 0;
     for (let i = 0, length = sortedReplacements.length; i < length; i++) {
       let replacement = sortedReplacements[i];
-      codeBuffer.unshift(code.substring(replacement.end, curser));
-      codeBuffer.unshift(this.cleanString(replacement.text));
-      curser = replacement.start;
+      codeBuffer.push(code.substring(cursor, replacement.start));
+      codeBuffer.push(this.cleanString(replacement.text));
+      cursor = replacement.end;
     }
-    codeBuffer.unshift(code.substring(0, curser));
+    codeBuffer.push(code.substring(cursor, code.length));
 
     return codeBuffer.join('');
   }
@@ -242,7 +242,7 @@ export default class Dedupe {
       return [];
     }
 
-    let scopes: Node[] = [];
+    let scopes: Block[] = [];
     const functions = this.getTopLevelFunctions(node);
     for (let functionNode of functions) {
       const blocks = this.getTopLevelFunctionBlocks(functionNode);

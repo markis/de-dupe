@@ -31,8 +31,8 @@ describe('de-dupe', () => {
     const result = dedupe.dedupe(code);
     const markers = result.match(/z/g) as any[];
 
-    expect(result).to.be.equal(expected);
-    expect(markers.length).to.be.equal(1);
+    expect(result).equal(expected);
+    expect(markers.length).equal(1);
   });
 
   it('can handle multiple scopes', () => {
@@ -47,9 +47,8 @@ describe('de-dupe', () => {
     `;
 
     const result = dedupe.dedupe(code);
-    const markers = result.match(/z/g) as any[];
 
-    expect(markers.length).to.be.equal(2);
+    expect((result.match(/z/g) as any[]).length).equal(2);
   });
 
   it('can handle multiple scopes from one global scope', () => {
@@ -68,19 +67,36 @@ describe('de-dupe', () => {
     const result = dedupe.dedupe(code);
     const markers = result.match(/z/g) as any[];
 
-    expect(markers.length).to.be.equal(1);
+    expect(markers.length).equal(1);
+  });
+
+  it('can handle named functions', () => {
+    const code = `function x() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
+    const expected = `function x() {var j="z"; console.log(j, j, j, j, j, j); }`;
+
+    const result = dedupe.dedupe(code);
+
+    expect(result).equal(expected);
+    expect((result.match(/z/g) as any[]).length).equal(1);
+  });
+
+  it('can handle arrow functions', () => {
+    const code = `() => { console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
+    const expected = `() => {var j="z"; console.log(j, j, j, j, j, j); }`;
+
+    const result = dedupe.dedupe(code);
+
+    expect(result).equal(expected);
+    expect((result.match(/z/g) as any[]).length).equal(1);
   });
 
   it('will add scope', () => {
-    const code = `
-      console.log('z', 'z', 'z', 'z', 'z', 'z');
-    `;
+    const code = `console.log('z', 'z', 'z', 'z', 'z', 'z');`;
 
     const result = scopeAdder.dedupe(code);
-    const markers = result.match(/z/g) as any[];
 
-    expect(result).to.contain('!function');
-    expect(markers.length).to.be.equal(1);
+    expect(result).contain('!function');
+    expect((result.match(/z/g) as any[]).length).equal(1);
   });
 
   it('will clean strings', () => {
@@ -92,10 +108,10 @@ describe('de-dupe', () => {
 
     const result = stringCleaner.dedupe(code);
 
-    expect(result).to.contain(`"z "`);
+    expect(result).contain(`"z "`);
   });
 
-  it('not effect global scope', () => {
+  it('will not effect non-function blocks', () => {
     const code = `
       if (true) {
         console.log('z', 'z', 'z', 'z', 'z', 'z');
@@ -103,9 +119,18 @@ describe('de-dupe', () => {
     `;
 
     const result = dedupe.dedupe(code);
-    const markers = result.match(/z/g) as any[];
 
-    expect(markers.length).to.be.equal(6);
+    expect((result.match(/z/g) as any[]).length).equal(6);
+  });
+
+  it('will take less than a millisecond to process a simple code block', () => {
+    const code = `!function() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }()`;
+
+    const start = process.hrtime();
+    const result = dedupe.dedupe(code);
+    const elapsed = process.hrtime(start)[1] / 1000000; // divide by 1M to convert nano to milli
+
+    expect(elapsed).lessThan(1);
   });
 
 });
