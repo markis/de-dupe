@@ -3,4 +3,5 @@ node_modules/
 tmp/
 .idea/
 .vscode/
-*.js
+/index.js
+/tests.js
