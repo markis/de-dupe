@@ -36,12 +36,13 @@ interface StringReplacement {
   text: string;
 }
 
+const USE_STRICT = 'use strict';
 const RESERVED_WORDS = `
   abstract arguments await boolean break byte case catch char class const continue debugger
   default delete do double else enum eval export extends false final finally float for
   function goto if implements import in instanceof int interface let long native new null
   package private protected public return short static super switch synchronized this throw
-  throws transient true try typeof var void volatile while with yield`.trim().split(/[\s]*/g);
+  throws transient true try typeof var void volatile while with yield`.trim().split(/[\s]+/g);
 
 export default class Dedupe {
   private attempt: number = 0;
@@ -76,7 +77,7 @@ export default class Dedupe {
     for (let i = 0, length = topLevelScopes.length; i < length; i++) {
       this.attempt = 0;
       const startingPos = this.getStartingPositionOfScope(topLevelScopes[i]);
-      const usedNames = this.getUsedVariableNames(usedIdentifiers, topLevelScopes[i]);
+      const usedNames = usedIdentifiers; //this.getUsedVariableNames(usedIdentifiers, topLevelScopes[i]);
       const stringMap = this.getStringMap(topLevelScopes[i]);
       const scopeReplacements = this.getStringReplacements(stringMap, startingPos, usedNames);
       replacements = replacements.concat(scopeReplacements);
@@ -153,8 +154,18 @@ export default class Dedupe {
     const walk = this.createWalker((node) => {
       switch (node.kind) {
         case SyntaxKind.StringLiteral:
+
+          // make sure this string is not part of an object assignment { "a": 123 }
+          if (node.parent && node.parent.kind === SyntaxKind.PropertyAssignment &&
+              node.parent.parent && node.parent.parent.kind === SyntaxKind.ObjectLiteralExpression) {
+            break;
+          }
+
           const stringNode = node as StringLiteral;
           const text = stringNode.text;
+          if (text === USE_STRICT) {
+            break;
+          }
           const strings = stringMap.get(text);
           if (strings) {
             strings.push(stringNode);
@@ -228,7 +239,20 @@ export default class Dedupe {
   }
 
   private getStartingPositionOfScope(scope: Block) {
-    return scope.getChildAt(1).pos;
+    let startingPos = scope.getChildAt(1).pos;
+
+    // check the top level of the block for "use strict"
+    forEachChild(scope, (expressionNode) => {
+      if (expressionNode.kind === SyntaxKind.ExpressionStatement) {
+        forEachChild(expressionNode, (stringNode: StringLiteral) => {
+          if (stringNode.kind === SyntaxKind.StringLiteral && stringNode.text === USE_STRICT) {
+            startingPos = expressionNode.getEnd();
+          }
+        });
+      }
+    });
+
+    return startingPos;
   }
 
   private cleanString(fatString: string): string {

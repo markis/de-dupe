@@ -26,7 +26,7 @@ describe('de-dupe', () => {
 
   it('can handle many small strings', () => {
     const code = `!function() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }()`;
-    const expected = `!function() {var j="z"; console.log(j, j, j, j, j, j); }()`;
+    const expected = `!function() {var a="z"; console.log(a, a, a, a, a, a); }()`;
 
     const result = dedupe.dedupe(code);
     const markers = result.match(/z/g) as any[];
@@ -72,7 +72,7 @@ describe('de-dupe', () => {
 
   it('can handle named functions', () => {
     const code = `function x() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
-    const expected = `function x() {var j="z"; console.log(j, j, j, j, j, j); }`;
+    const expected = `function x() {var a="z"; console.log(a, a, a, a, a, a); }`;
 
     const result = dedupe.dedupe(code);
 
@@ -82,7 +82,17 @@ describe('de-dupe', () => {
 
   it('can handle arrow functions', () => {
     const code = `() => { console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
-    const expected = `() => {var j="z"; console.log(j, j, j, j, j, j); }`;
+    const expected = `() => {var a="z"; console.log(a, a, a, a, a, a); }`;
+
+    const result = dedupe.dedupe(code);
+
+    expect(result).equal(expected);
+    expect((result.match(/z/g) as any[]).length).equal(1);
+  });
+
+  it('can handle strict mode', () => {
+    const code = `function x() { "use strict"; console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
+    const expected = `function x() { "use strict";var a="z"; console.log(a, a, a, a, a, a); }`;
 
     const result = dedupe.dedupe(code);
 
@@ -120,17 +130,44 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect((result.match(/z/g) as any[]).length).equal(6);
+    expect(result).equal(code);
   });
 
-  it('will take less than a millisecond to process a simple code block', () => {
-    const code = `!function() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }()`;
+  it('will not treat "use strict" as a string', () => {
+    const code = `
+      () => {
+        'use strict';
+        console.log('use strict', 'use strict', 'use strict', 'use strict', 'use strict', 'use strict');
+      }
+    `;
 
-    const start = process.hrtime();
     const result = dedupe.dedupe(code);
-    const elapsed = process.hrtime(start)[1] / 1000000; // divide by 1M to convert nano to milli
 
-    expect(elapsed).lessThan(1);
+    expect(code).equal(result);
+  });
+
+  it('will not treat property assignment as a string', () => {
+    const propertyAssignment = `var stuff = { 'z' : 123 };`;
+    const code = `
+      function x() {
+        ${propertyAssignment}
+        console.log('z', 'z', 'z', 'z', 'z', 'z', 'z', 'z');
+      }
+    `;
+
+    const result = dedupe.dedupe(code);
+
+    expect(result).contains(propertyAssignment);
+  });
+
+  it('will handle magical globals', () => {
+    // notice the expected is expecting dedupe to identify that "a" is referring to an outside variable
+    const code = `function x() { a.evar36 = 'asdf'; console.log('z', 'z', 'z', 'z', 'z', 'z', 'z', 'z'); }`;
+    const expected = `function x() {var b="z"; a.evar36 = 'asdf'; console.log(b, b, b, b, b, b, b, b); }`;
+
+    const result = dedupe.dedupe(code);
+
+    expect(result).equal(expected);
   });
 
 });
