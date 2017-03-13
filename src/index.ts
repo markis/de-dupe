@@ -155,10 +155,11 @@ export default class Dedupe {
       switch (node.kind) {
         case SyntaxKind.StringLiteral:
 
-          // make sure this string is not part of an object assignment { "a": 123 }
-          if (node.parent && node.parent.kind === SyntaxKind.PropertyAssignment &&
-              node.parent.parent && node.parent.parent.kind === SyntaxKind.ObjectLiteralExpression) {
-            break;
+          // make sure this string is not part of an property assignment { "a": 123 }
+          if (node.parent && node.parent.kind === SyntaxKind.PropertyAssignment) {
+            if (node.parent.getChildAt(0) === node) {
+              break;
+            }
           }
 
           const stringNode = node as StringLiteral;
