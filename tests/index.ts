@@ -84,15 +84,13 @@ describe('de-dupe', () => {
   it('will clean strings', () => {
     const code = `
       !function() {
-        console.log('z  ', 'z  ', 'z  ', 'z  ', 'z  ', 'z  ');
-      }
+        console.log('z  ', 'z  ', 'z  ', 'z  ', 'z  ', 'z  ', 'z  ', 'z  ');
+      }()
     `;
 
     const result = stringCleaner.dedupe(code);
-    const markers = result.match(/z\s{1,1}/g) as any[];
 
-    expect(result).to.contain('!function');
-    expect(markers.length).to.be.equal(1);
+    expect(result).to.contain(`"z "`);
   });
 
   xit('not effect global scope', () => {
@@ -109,4 +107,3 @@ describe('de-dupe', () => {
   });
 
 });
-

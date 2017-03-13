@@ -154,7 +154,7 @@ export default class Dedupe {
       switch (node.kind) {
         case SyntaxKind.StringLiteral:
           const stringNode = node as StringLiteral;
-          const text = this.cleanString(stringNode.text);
+          const text = stringNode.text;
           const strings = stringMap.get(text);
           if (strings) {
             strings.push(stringNode);
@@ -211,19 +211,12 @@ export default class Dedupe {
     for (let i = 0, length = sortedReplacements.length; i < length; i++) {
       let replacement = sortedReplacements[i];
       codeBuffer.unshift(code.substring(replacement.end, curser));
-      codeBuffer.unshift(replacement.text);
+      codeBuffer.unshift(this.cleanString(replacement.text));
       curser = replacement.start;
     }
     codeBuffer.unshift(code.substring(0, curser));
 
     return codeBuffer.join('');
-  }
-
-  private findInNodes(startingNode: Node, expression: (node: Node) => boolean) {
-    const walker = (node: Node) => {
-      forEachChild(node, walker);
-    };
-    forEachChild(startingNode, expression);
   }
 
   private createWalker(traverser: StatementAction) {
@@ -239,8 +232,8 @@ export default class Dedupe {
   }
 
   private cleanString(fatString: string): string {
-    return this.options.cleanString
-            ? this.cleanString(fatString)
+    return this.options.cleanStrings
+            ? fatString.replace(/[\s]+/g, ' ')
             : fatString;
   }
 
