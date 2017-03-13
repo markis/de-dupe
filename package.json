@@ -5,7 +5,9 @@
   "description": "Deduplicate strings from javascript assets",
   "main": "index.js",
   "scripts": {
-    "test": "rollup -c -o tests.js -i tests/index.ts && mocha tests.js",
+    "prepublish": "npm test && npm run build",
+    "lint": "tslint -c tslint.json ./src/**/*.ts",
+    "test": "npm run lint && rollup -c -o tests.js -i tests/index.ts && mocha tests.js",
     "build": "rollup -c"
   },
   "repository": {

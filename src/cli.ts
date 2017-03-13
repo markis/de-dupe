@@ -50,8 +50,8 @@ function parseArguments(process: Process) {
   const parsedOptions = {
     addScope: false,
     cleanString: false,
-    minInstances: undefined,
     files: [] as string[],
+    minInstances: undefined,
     showHelp: true
   };
   let parseFiles = false;
