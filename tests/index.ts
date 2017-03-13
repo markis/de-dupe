@@ -15,8 +15,8 @@ const scopeAdder = new Dedupe({
 
 describe('de-dupe', () => {
 
-  it('can dedupe large strings', () => {
-    const code = `!function() { console.log('zzzzzzzzzz', 'zzzzzzzzzz'); }`;
+  it('can handle large strings', () => {
+    const code = `!function() { console.log('zzzzzzzzzz', 'zzzzzzzzzz'); }()`;
 
     const result = dedupe.dedupe(code);
     const markers = result.match(/zzzzzzzzzz/g) as any[];
@@ -24,24 +24,26 @@ describe('de-dupe', () => {
     expect(markers.length).to.be.equal(1);
   });
 
-  it('can dedupe many small strings', () => {
-    const code = `!function() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
+  it('can handle many small strings', () => {
+    const code = `!function() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }()`;
+    const expected = `!function() {var j="z"; console.log(j, j, j, j, j, j); }()`;
 
     const result = dedupe.dedupe(code);
     const markers = result.match(/z/g) as any[];
 
+    expect(result).to.be.equal(expected);
     expect(markers.length).to.be.equal(1);
   });
 
-  it('can dedupe multiple scopes', () => {
+  it('can handle multiple scopes', () => {
     const code = `
       !function() {
         console.log('z', 'z', 'z', 'z', 'z', 'z');
-      }
+      }()
 
       !function() {
         console.log('z', 'z', 'z', 'z', 'z', 'z');
-      }
+      }()
     `;
 
     const result = dedupe.dedupe(code);
@@ -50,17 +52,17 @@ describe('de-dupe', () => {
     expect(markers.length).to.be.equal(2);
   });
 
-  it('can dedupe multiple scopes from one global scope', () => {
+  it('can handle multiple scopes from one global scope', () => {
     const code = `
       !function() {
         !function() {
           console.log('z', 'z', 'z', 'z', 'z', 'z');
-        }
+        }()
 
         !function() {
           console.log('z', 'z', 'z', 'z', 'z', 'z');
-        }
-      }
+        }()
+      }()
     `;
 
     const result = dedupe.dedupe(code);
@@ -93,7 +95,7 @@ describe('de-dupe', () => {
     expect(result).to.contain(`"z "`);
   });
 
-  xit('not effect global scope', () => {
+  it('not effect global scope', () => {
     const code = `
       if (true) {
         console.log('z', 'z', 'z', 'z', 'z', 'z');

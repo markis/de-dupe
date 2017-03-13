@@ -242,6 +242,37 @@ export default class Dedupe {
       return [];
     }
 
+    let scopes: Node[] = [];
+    const functions = this.getTopLevelFunctions(node);
+    for (let functionNode of functions) {
+      const blocks = this.getTopLevelFunctionBlocks(functionNode);
+      scopes = scopes.concat(blocks);
+    }
+    return scopes;
+  }
+
+  private getTopLevelFunctions(node?: Node) {
+    const queue: Node[] = [];
+    const found: Block[] = [];
+    while (node) {
+      if (
+          node.kind !== SyntaxKind.ArrowFunction &&
+          node.kind !== SyntaxKind.FunctionDeclaration &&
+          node.kind !== SyntaxKind.FunctionExpression &&
+          node.kind !== SyntaxKind.FunctionType
+      ) {
+        forEachChild(node, childNode => {
+          queue.push(childNode);
+        });
+      } else {
+        found.push(node as Block);
+      }
+      node = queue.shift();
+    }
+    return found;
+  }
+
+  private getTopLevelFunctionBlocks(node?: Node) {
     const queue: Node[] = [];
     const found: Block[] = [];
     while (node) {
@@ -256,4 +287,5 @@ export default class Dedupe {
     }
     return found;
   }
+
 }
