@@ -7,8 +7,10 @@
   "scripts": {
     "prepublish": "npm test && npm run build",
     "lint": "tslint -c tslint.json ./src/**/*.ts",
-    "test": "npm run lint && rollup -c -o tests.js -i tests/index.ts && mocha tests.js --expose-gc",
-    "build": "rollup -c"
+    "test": "npm run lint && rollup -c -o tests.js -i tests/index.ts && mocha tests.js",
+    "build": "npm run build:index && npm run build:cli",
+    "build:index": "rollup -c -o index.js -i src/index.ts",
+    "build:cli": "rollup -c -o cli.js -i src/cli.ts"
   },
   "repository": {
     "type": "git",

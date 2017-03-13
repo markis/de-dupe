@@ -160,6 +160,26 @@ describe('de-dupe', () => {
     expect(result).contains(propertyAssignment);
   });
 
+  it('will not treat the left side of a property assignment as a string', () => {
+    const code = `
+      function x() {
+        var stuff = { 'z' : 'z' };
+        console.log('z', 'z', 'z', 'z', 'z', 'z', 'z', 'z');
+      }
+    `;
+    const expected = `
+      function x() {var a="z";
+        var stuff = { 'z' : a };
+        console.log(a, a, a, a, a, a, a, a);
+      }
+    `;
+
+    const result = dedupe.dedupe(code);
+
+    expect(result).equals(expected);
+  });
+
+
   it('will handle magical globals', () => {
     // notice the expected is expecting dedupe to identify that "a" is referring to an outside variable
     const code = `function x() { a.evar36 = 'asdf'; console.log('z', 'z', 'z', 'z', 'z', 'z', 'z', 'z'); }`;

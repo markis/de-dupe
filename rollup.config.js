@@ -1,7 +1,7 @@
 var typescript = require('rollup-plugin-typescript');
 
 module.exports = {
-  entry: './src/cli.ts',
+  entry: './src/index.ts',
   dest: 'index.js',
   format: 'cjs',
   moduleId: 'de-dupe',
