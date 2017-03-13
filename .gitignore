@@ -5,3 +5,4 @@ tmp/
 .vscode/
 /index.js
 /tests.js
+/cli.js
