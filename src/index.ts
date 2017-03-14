@@ -5,7 +5,6 @@ import {
   Identifier,
   Node,
   ScriptTarget,
-  SourceFile,
   StringLiteral,
   SyntaxKind,
   VariableDeclaration
@@ -23,6 +22,10 @@ export interface DedupeOptions {
    */
   cleanStrings?: boolean;
   /**
+   * Should the result include the replacements
+   */
+  includeReplacements?: boolean;
+  /**
    * Minimum number of string instances before de-dupe will replace the string.
    */
   minInstances?: number;
@@ -38,10 +41,15 @@ interface StatementAction {
   (statement: Node): void;
 }
 
-interface StringReplacement {
+export interface StringReplacement {
   end: number;
   start: number;
   text: string;
+}
+
+export interface Result {
+  code: string;
+  replacements?: StringReplacement[];
 }
 
 const INFREQUENT_CHARS = /[\\\/kwzq]+/ig;
@@ -60,6 +68,7 @@ export default class Dedupe {
   private options: DedupeOptions = {
     addScope: false,
     cleanStrings: false,
+    includeReplacements: false,
     minInstances: 10,
     minLength: 10
   };
@@ -70,7 +79,7 @@ export default class Dedupe {
     }
   }
 
-  public dedupe(code: string): string {
+  public dedupe(code: string): Result {
     if (this.options.addScope) {
       code = `!function(){${code}}`;
     }
@@ -97,7 +106,11 @@ export default class Dedupe {
     const sortedReplacements = this.sortReplacements(replacements);
     code = this.makeAllReplacements(code, sortedReplacements);
 
-    return code;
+    if (this.options.includeReplacements) {
+      return { code, replacements: sortedReplacements };
+    } else {
+      return { code };
+    }
   }
 
   private shouldStringBeReplaced(str: string, count: number): boolean {
@@ -230,8 +243,6 @@ export default class Dedupe {
 
   private translateNumberToVariable(num: number): string {
     const letters = '_eariotnslcu';
-    const charLen = Math.floor(num / letters.length);
-
     const base = letters.length;
     let rixit; // like 'digit', only in some non-decimal radix
     let residual = Math.floor(num);
@@ -284,7 +295,7 @@ export default class Dedupe {
     let startingPos = scope.getChildAt(1).pos;
 
     // check the top level of the block for "use strict"
-    forEachChild(scope, (expressionNode) => {
+    forEachChild(scope, (expressionNode: Node) => {
       if (expressionNode.kind === SyntaxKind.ExpressionStatement) {
         forEachChild(expressionNode, (stringNode: StringLiteral) => {
           if (stringNode.kind === SyntaxKind.StringLiteral && stringNode.text === USE_STRICT) {
@@ -327,7 +338,7 @@ export default class Dedupe {
           node.kind !== SyntaxKind.FunctionExpression &&
           node.kind !== SyntaxKind.FunctionType
       ) {
-        forEachChild(node, childNode => {
+        forEachChild(node, (childNode: Node) => {
           queue.push(childNode);
         });
       } else {
@@ -343,7 +354,7 @@ export default class Dedupe {
     const found: Block[] = [];
     while (node) {
       if (node.kind !== SyntaxKind.Block) {
-        forEachChild(node, childNode => {
+        forEachChild(node, (childNode: Node) => {
           queue.push(childNode);
         });
       } else {

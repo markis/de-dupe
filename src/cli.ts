@@ -22,7 +22,7 @@ function processFiles(opt: typeof options) {
         console.error(err);
       } else {
         const dedupe = new Dedupe(opt as DedupeOptions);
-        const dedupedCode = dedupe.dedupe(code);
+        const dedupedCode = dedupe.dedupe(code).code;
         writeFile(file.replace('.js', '') + '.min.js', dedupedCode);
       }
     });

@@ -24,7 +24,7 @@ describe('de-dupe', () => {
     const code = `!function() { console.log('zzzzzzzzzz', 'zzzzzzzzzz'); }()`;
 
     const result = dedupe.dedupe(code);
-    const markers = result.match(/zzzzzzzzzz/g) as any[];
+    const markers = result.code.match(/zzzzzzzzzz/g) as any[];
 
     expect(markers.length).to.be.equal(1);
   });
@@ -34,9 +34,9 @@ describe('de-dupe', () => {
     const expected = `!function() {var _="z"; console.log(_, _, _, _, _, _); }()`;
 
     const result = dedupe.dedupe(code);
-    const markers = result.match(/z/g) as any[];
+    const markers = result.code.match(/z/g) as any[];
 
-    expect(result).equal(expected);
+    expect(result.code).equal(expected);
     expect(markers.length).equal(1);
   });
 
@@ -53,7 +53,7 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect((result.match(/z/g) as any[]).length).equal(2);
+    expect((result.code.match(/z/g) as any[]).length).equal(2);
   });
 
   it('can handle multiple scopes from one global scope', () => {
@@ -70,7 +70,7 @@ describe('de-dupe', () => {
     `;
 
     const result = dedupe.dedupe(code);
-    const markers = result.match(/z/g) as any[];
+    const markers = result.code.match(/z/g) as any[];
 
     expect(markers.length).equal(1);
   });
@@ -81,8 +81,8 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(result).equal(expected);
-    expect((result.match(/z/g) as any[]).length).equal(1);
+    expect(result.code).equal(expected);
+    expect((result.code.match(/z/g) as any[]).length).equal(1);
   });
 
   it('can handle arrow functions', () => {
@@ -91,8 +91,8 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(result).equal(expected);
-    expect((result.match(/z/g) as any[]).length).equal(1);
+    expect(result.code).equal(expected);
+    expect((result.code.match(/z/g) as any[]).length).equal(1);
   });
 
   it('can handle strict mode', () => {
@@ -101,8 +101,8 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(result).equal(expected);
-    expect((result.match(/z/g) as any[]).length).equal(1);
+    expect(result.code).equal(expected);
+    expect((result.code.match(/z/g) as any[]).length).equal(1);
   });
 
   it('will add scope', () => {
@@ -110,8 +110,8 @@ describe('de-dupe', () => {
 
     const result = scopeAdder.dedupe(code);
 
-    expect(result).contain('!function');
-    expect((result.match(/z/g) as any[]).length).equal(1);
+    expect(result.code).contain('!function');
+    expect((result.code.match(/z/g) as any[]).length).equal(1);
   });
 
   it('will clean strings', () => {
@@ -123,7 +123,7 @@ describe('de-dupe', () => {
 
     const result = stringCleaner.dedupe(code);
 
-    expect(result).contain(`"z "`);
+    expect(result.code).contain(`"z "`);
   });
 
   it('will not effect non-function blocks', () => {
@@ -135,7 +135,7 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(result).equal(code);
+    expect(result.code).equal(code);
   });
 
   it('will not treat "use strict" as a string', () => {
@@ -148,7 +148,7 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(code).equal(result);
+    expect(code).equal(result.code);
   });
 
   it('will not treat property assignment as a string', () => {
@@ -162,7 +162,7 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(result).contains(propertyAssignment);
+    expect(result.code).contains(propertyAssignment);
   });
 
   it('will not treat the left side of a property assignment as a string', () => {
@@ -181,7 +181,7 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(result).equals(expected);
+    expect(result.code).equals(expected);
   });
 
   it('will handle magical globals', () => {
@@ -191,7 +191,7 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(result).equal(expected);
+    expect(result.code).equal(expected);
   });
 
   it('deal with strings next to reserved words', () => {
@@ -200,7 +200,7 @@ describe('de-dupe', () => {
 
     const result = dedupe.dedupe(code);
 
-    expect(result).equal(expected);
+    expect(result.code).equal(expected);
   });
 
 

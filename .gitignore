@@ -4,5 +4,6 @@ tmp/
 .idea/
 .vscode/
 /index.js
+/index.d.ts
 /tests.js
 /cli.js
