@@ -16,12 +16,20 @@ export interface DedupeOptions {
    * Adds an IIFE around the entire script, this broadens the possible instances
    * where strings duplication could be consolidated
    */
-  addScope: boolean;
+  addScope?: boolean;
   /**
    * Removes duplicate spaces from strings, usually strings in javascript render
    * to the DOM and more than one space in the DOM is ignored and just bloats scripts
    */
-  cleanStrings: boolean;
+  cleanStrings?: boolean;
+  /**
+   * Minimum number of string instances before de-dupe will replace the string.
+   */
+  minInstances?: number;
+  /**
+   * Minimum length of the string before de-dupe will replace the string.
+   */
+  minLength?: number;
 }
 
 interface StringMap extends Map<string, StringLiteral[]> { }
@@ -36,6 +44,8 @@ interface StringReplacement {
   text: string;
 }
 
+const INFREQUENT_CHARS = /[\\\/kwzq]+/ig;
+const BOUNDARY = /\b/;
 const USE_STRICT = 'use strict';
 const RESERVED_WORDS = `
   abstract arguments await boolean break byte case catch char class const continue debugger
@@ -49,7 +59,9 @@ export default class Dedupe {
 
   private options: DedupeOptions = {
     addScope: false,
-    cleanStrings: false
+    cleanStrings: false,
+    minInstances: 10,
+    minLength: 10
   };
 
   constructor(options?: DedupeOptions) {
@@ -89,39 +101,61 @@ export default class Dedupe {
   }
 
   private shouldStringBeReplaced(str: string, count: number): boolean {
-    if (count > 1) {
-      if (str.length > 5) {
-        return true;
-      }
-      if (count > 5) {
-        return true;
-      }
+    const minLength = typeof this.options.minLength === 'undefined' ? -1 : this.options.minLength;
+    const minInstances = typeof this.options.minInstances === 'undefined' ? -1 : this.options.minInstances;
+    const matches = (str.match(INFREQUENT_CHARS) as any);
+    if (matches && matches.length > 1) {
+      return true;
+    }
+    if (str.length > minLength) {
+      return true;
+    }
+    if (count > minInstances) {
+      return true;
     }
     return false;
   }
 
   private getStringReplacements(stringMap: StringMap, startingPos: number,
                                 usedVariableNames: Map<string, string>): StringReplacement[] {
-    let variableDeclarationBuffer: string[] = [];
+    const variableDeclarationBuffer: string[] = [];
     const replacements: StringReplacement[] = [];
+    const rankingMap: Array<Array<string | number>> = [];
     stringMap.forEach((values, key) => {
-      if (this.shouldStringBeReplaced(key, values.length)) {
+      const count = values.length;
+      if (this.shouldStringBeReplaced(key, count)) {
+        rankingMap.push([key, count]);
+      }
+    });
+
+    rankingMap.sort((a, b) => {
+      return a[1] > b[1] ? 1 : a[1] < b[1] ? -1 : 0;
+    });
+
+    for (let ranking of rankingMap) {
+      let key = ranking[0] as string;
+      let values = stringMap.get(key);
+      if (values) {
         const variableName = this.getUniqueVariableName(usedVariableNames);
         variableDeclarationBuffer.push(`${variableName}=${JSON.stringify(key)}`);
 
         for (let j = 0, length = values.length; j < length; j++) {
+          let node = values[j];
+          let start = node.getStart();
+          let end = node.getEnd();
+
           replacements.push({
-            end: values[j].getEnd(),
-            start: values[j].getStart(),
+            end,
+            start,
             text: variableName
           });
         }
       }
-    });
+    }
 
     let variableDeclaration = '';
     if (variableDeclarationBuffer.length > 0) {
-      variableDeclaration = `var ${variableDeclarationBuffer.join(',\n')};`;
+      variableDeclaration = `var ${variableDeclarationBuffer.join(',')};`;
       replacements.push({
         end: startingPos,
         start: startingPos,
@@ -195,7 +229,7 @@ export default class Dedupe {
   }
 
   private translateNumberToVariable(num: number): string {
-    const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const letters = '_eariotnslcu';
     const charLen = Math.floor(num / letters.length);
 
     const base = letters.length;
@@ -222,8 +256,15 @@ export default class Dedupe {
     let cursor = 0;
     for (let i = 0, length = sortedReplacements.length; i < length; i++) {
       let replacement = sortedReplacements[i];
+
       codeBuffer.push(code.substring(cursor, replacement.start));
+      if (BOUNDARY.test(code.charAt(replacement.start - 1))) {
+        codeBuffer.push(' ');
+      }
       codeBuffer.push(this.cleanString(replacement.text));
+      if (BOUNDARY.test(code.charAt(replacement.end))) {
+        codeBuffer.push(' ');
+      }
       cursor = replacement.end;
     }
     codeBuffer.push(code.substring(cursor, code.length));

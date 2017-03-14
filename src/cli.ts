@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'fs';
 import { resolve } from 'path';
-import Dedupe from './index';
+import Dedupe, { DedupeOptions } from './index';
 // tslint:disable:no-var-requires
 const config = require('./package.json');
 // tslint:enable:no-var-require
@@ -21,12 +21,7 @@ function processFiles(opt: typeof options) {
       if (err) {
         console.error(err);
       } else {
-        const dedupeOptions = {
-          addScope: !!opt.addScope,
-          cleanStrings: !!opt.cleanString,
-          minInstances: opt.minInstances || 0
-        };
-        const dedupe = new Dedupe(dedupeOptions);
+        const dedupe = new Dedupe(opt as DedupeOptions);
         const dedupedCode = dedupe.dedupe(code);
         writeFile(file.replace('.js', '') + '.min.js', dedupedCode);
       }
@@ -47,12 +42,8 @@ function printHelp() {
 }
 
 function parseArguments(process: Process) {
-  const parsedOptions = {
-    addScope: false,
-    cleanString: false,
-    files: [] as string[],
-    minInstances: undefined,
-    showHelp: true
+  const parsedOptions: any = {
+    files: []
   };
   let parseFiles = false;
   process.argv.forEach((val, idx) => {
@@ -66,12 +57,19 @@ function parseArguments(process: Process) {
           break;
         case '--cleanStrings':
         case '-c':
-          parsedOptions.cleanString = true;
+          parsedOptions.cleanStrings = true;
+          break;
+        case '--minLength':
+        case '-ml':
+          const minLength = parseInt(process.argv[idx + 1], 10);
+          if (!isNaN(minLength)) {
+            parsedOptions.minLength = minLength;
+          }
           break;
         case '--minInstances':
-        case '-m':
+        case '-mi':
           const minInstances = parseInt(process.argv[idx + 1], 10);
-          if (minInstances && minInstances > 0) {
+          if (!isNaN(minInstances)) {
             parsedOptions.minInstances = minInstances;
           }
           break;

@@ -3,14 +3,19 @@ import 'mocha';
 import { expect } from 'chai';
 import Dedupe from '../src/index';
 
-const dedupe = new Dedupe();
+const dedupe = new Dedupe({
+  minInstances: 2,
+  minLength: 2
+});
 const stringCleaner = new Dedupe({
-  addScope: false,
-  cleanStrings: true
+  cleanStrings: true,
+  minInstances: 2,
+  minLength: 2
 });
 const scopeAdder = new Dedupe({
   addScope: true,
-  cleanStrings: false
+  minInstances: 2,
+  minLength: 2
 });
 
 describe('de-dupe', () => {
@@ -26,7 +31,7 @@ describe('de-dupe', () => {
 
   it('can handle many small strings', () => {
     const code = `!function() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }()`;
-    const expected = `!function() {var a="z"; console.log(a, a, a, a, a, a); }()`;
+    const expected = `!function() {var _="z"; console.log(_, _, _, _, _, _); }()`;
 
     const result = dedupe.dedupe(code);
     const markers = result.match(/z/g) as any[];
@@ -72,7 +77,7 @@ describe('de-dupe', () => {
 
   it('can handle named functions', () => {
     const code = `function x() { console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
-    const expected = `function x() {var a="z"; console.log(a, a, a, a, a, a); }`;
+    const expected = `function x() {var _="z"; console.log(_, _, _, _, _, _); }`;
 
     const result = dedupe.dedupe(code);
 
@@ -82,7 +87,7 @@ describe('de-dupe', () => {
 
   it('can handle arrow functions', () => {
     const code = `() => { console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
-    const expected = `() => {var a="z"; console.log(a, a, a, a, a, a); }`;
+    const expected = `() => {var _="z"; console.log(_, _, _, _, _, _); }`;
 
     const result = dedupe.dedupe(code);
 
@@ -92,7 +97,7 @@ describe('de-dupe', () => {
 
   it('can handle strict mode', () => {
     const code = `function x() { "use strict"; console.log('z', 'z', 'z', 'z', 'z', 'z'); }`;
-    const expected = `function x() { "use strict";var a="z"; console.log(a, a, a, a, a, a); }`;
+    const expected = `function x() { "use strict";var _="z"; console.log(_, _, _, _, _, _); }`;
 
     const result = dedupe.dedupe(code);
 
@@ -168,9 +173,9 @@ describe('de-dupe', () => {
       }
     `;
     const expected = `
-      function x() {var a="z";
-        var stuff = { 'z' : a };
-        console.log(a, a, a, a, a, a, a, a);
+      function x() {var _="z";
+        var stuff = { 'z' : _ };
+        console.log(_, _, _, _, _, _, _, _);
       }
     `;
 
@@ -179,15 +184,24 @@ describe('de-dupe', () => {
     expect(result).equals(expected);
   });
 
-
   it('will handle magical globals', () => {
     // notice the expected is expecting dedupe to identify that "a" is referring to an outside variable
-    const code = `function x() { a.evar36 = 'asdf'; console.log('z', 'z', 'z', 'z', 'z', 'z', 'z', 'z'); }`;
-    const expected = `function x() {var b="z"; a.evar36 = 'asdf'; console.log(b, b, b, b, b, b, b, b); }`;
+    const code = `function x() { _.thing = 'a'; console.log('z', 'z', 'z', 'z', 'z', 'z', 'z', 'z'); }`;
+    const expected = `function x() {var e="z"; _.thing = 'a'; console.log(e, e, e, e, e, e, e, e); }`;
 
     const result = dedupe.dedupe(code);
 
     expect(result).equal(expected);
   });
+
+  it('deal with strings next to reserved words', () => {
+    const code = `function x() { if ('z'in x) { console.log('z', 'z', 'z', 'z', 'z', 'z', 'z', 'z'); } }`;
+    const expected = `function x() {var _="z"; if (_ in x) { console.log(_, _, _, _, _, _, _, _); } }`;
+
+    const result = dedupe.dedupe(code);
+
+    expect(result).equal(expected);
+  });
+
 
 });
