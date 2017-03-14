@@ -1,7 +1,7 @@
 {
   "name": "de-dupe",
   "bin": ".bin/de-dupe",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Deduplicate strings from javascript assets",
   "main": "index.js",
   "scripts": {
