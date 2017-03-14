@@ -9,7 +9,7 @@
     "lint": "tslint -c tslint.json ./src/**/*.ts",
     "test": "npm run lint && rollup -c -o tests.js -i tests/index.ts && mocha tests.js",
     "build": "npm run build:index && npm run build:cli && npm run build:declarations",
-    "build:declarations": "tsc -d --module && mv tmp/src/index.d.ts ./index.d.ts",
+    "build:declarations": "tsc -d && mv tmp/src/index.d.ts ./index.d.ts",
     "build:index": "rollup -c -o index.js -i src/index.ts",
     "build:cli": "rollup -c -o cli.js -i src/cli.ts"
   },
