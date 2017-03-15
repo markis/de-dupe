@@ -1,4 +1,4 @@
-#De-dupe - a Javascript string minifier
+# De-dupe - a Javascript string minifier
 
 [![Build Status](https://travis-ci.org/markis/de-dupe.svg?branch=master)](https://travis-ci.org/markis/de-dupe) [![Greenkeeper badge](https://badges.greenkeeper.io/markis/de-dupe.svg)](https://greenkeeper.io/)
 
