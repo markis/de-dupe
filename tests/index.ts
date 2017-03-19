@@ -4,19 +4,19 @@ import { expect } from 'chai';
 import Dedupe from '../src/index';
 
 const dedupe = new Dedupe({
-  algorithm: 'gzip',
+  type: 'gzip',
   minInstances: 2,
   minLength: 2
 });
 const stringCleaner = new Dedupe({
-  algorithm: 'all',
+  type: 'all',
   cleanStrings: true,
   minInstances: 2,
   minLength: 2
 });
 const scopeAdder = new Dedupe({
   addScope: true,
-  algorithm: 'all',
+  type: 'all',
   minInstances: 2,
   minLength: 2
 });
