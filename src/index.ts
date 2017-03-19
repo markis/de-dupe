@@ -12,6 +12,12 @@ import {
 
 export interface DedupeOptions {
   /**
+   * Specify the deduplication algorithm.
+   *    gzip - Apply an algorithm that works best for files that will be gzipped
+   *    all -
+   */
+  algorithm?: 'gzip' | 'all';
+  /**
    * Adds an IIFE around the entire script, this broadens the possible instances
    * where strings duplication could be consolidated
    */
@@ -67,10 +73,11 @@ export default class Dedupe {
 
   private options: DedupeOptions = {
     addScope: false,
+    algorithm: 'gzip',
     cleanStrings: false,
     includeReplacements: false,
-    minInstances: 10,
-    minLength: 10
+    minInstances: -1,
+    minLength: -1
   };
 
   constructor(options?: DedupeOptions) {
@@ -81,7 +88,7 @@ export default class Dedupe {
 
   public dedupe(code: string): Result {
     if (this.options.addScope) {
-      code = `!function(){${code}}`;
+      code = `!function(){${code}}();`;
     }
 
     let replacements: StringReplacement[] = [];
@@ -100,8 +107,14 @@ export default class Dedupe {
       const startingPos = this.getStartingPositionOfScope(topLevelScopes[i]);
       const usedNames = this.getUsedVariableNames(usedIdentifiers, topLevelScopes[i]);
       const stringMap = this.getStringMap(topLevelScopes[i]);
-      const scopeReplacements = this.getStringReplacements(stringMap, startingPos, usedNames);
-      replacements = replacements.concat(scopeReplacements);
+
+      if (this.options.algorithm === 'gzip') {
+        const scopeReplacements = this.getGzipStringReplacements(stringMap, startingPos, usedNames);
+        replacements = replacements.concat(scopeReplacements);
+      } else {
+        const scopeReplacements = this.getAllStringReplacements(stringMap, startingPos, usedNames);
+        replacements = replacements.concat(scopeReplacements);
+      }
     }
     const sortedReplacements = this.sortReplacements(replacements);
     code = this.makeAllReplacements(code, sortedReplacements);
@@ -113,30 +126,97 @@ export default class Dedupe {
     }
   }
 
-  private shouldStringBeReplaced(str: string, count: number): boolean {
-    const minLength = typeof this.options.minLength === 'undefined' ? -1 : this.options.minLength;
-    const minInstances = typeof this.options.minInstances === 'undefined' ? -1 : this.options.minInstances;
-    const matches = (str.match(INFREQUENT_CHARS) as any);
-    if (matches && matches.length > 1) {
-      return true;
-    }
-    if (str.length > minLength) {
-      return true;
-    }
-    if (count > minInstances) {
-      return true;
-    }
-    return false;
-  }
+  private getGzipStringReplacements(stringMap: StringMap, startingPos: number,
+                                    usedVariableNames: Map<string, string>): StringReplacement[] {
 
-  private getStringReplacements(stringMap: StringMap, startingPos: number,
-                                usedVariableNames: Map<string, string>): StringReplacement[] {
     const variableDeclarationBuffer: string[] = [];
     const replacements: StringReplacement[] = [];
-    const rankingMap: Array<Array<string | number>> = [];
+    const gzipSlidingWindowSize = 32768;
+    const stringKeysToReplace: string[] = [];
+
+    stringMap.forEach((values, key) => {
+      values = values.sort((a, b) => {
+        const start1 = a.getStart();
+        const start2 = b.getStart();
+
+        if (start1 > start2) {
+          return 1;
+        }
+        if (start1 < start2) {
+          return -1;
+        }
+        return 0;
+      });
+
+      for (let i = 1; i < values.length; i++) {
+        const start1 = values[i - 1].getStart();
+        const start2 = values[i].getStart();
+        if ((start2 - start1) > gzipSlidingWindowSize) {
+          stringKeysToReplace.push(key);
+          return;
+        }
+      }
+    });
+
+    for (let key of stringKeysToReplace) {
+      const values = stringMap.get(key);
+      if (!values) {
+        break;
+      }
+      const variableName = this.getUniqueVariableName(usedVariableNames);
+      variableDeclarationBuffer.push(`${variableName}=${JSON.stringify(key)}`);
+
+      for (let j = 0, length = values.length; j < length; j++) {
+        let node = values[j];
+        let start = node.getStart();
+        let end = node.getEnd();
+
+        replacements.push({
+          end,
+          start,
+          text: variableName
+        });
+      }
+    }
+
+    let variableDeclaration = '';
+    if (variableDeclarationBuffer.length > 0) {
+      variableDeclaration = `var ${variableDeclarationBuffer.join(',')};`;
+      replacements.push({
+        end: startingPos,
+        start: startingPos,
+        text: variableDeclaration
+      });
+    }
+    return replacements;
+  }
+
+  private getAllStringReplacements(stringMap: StringMap, startingPos: number,
+                                   usedVariableNames: Map<string, string>): StringReplacement[] {
+    const variableDeclarationBuffer: string[] = [];
+    const replacements: StringReplacement[] = [];
+    let rankingMap: Array<Array<string | number>> = [];
+
+    const minLength = typeof this.options.minLength === 'undefined' ? -1 : this.options.minLength;
+    const minInstances = typeof this.options.minInstances === 'undefined' ? -1 : this.options.minInstances;
+
+    const shouldStringBeReplaced = (str: string, count: number) => {
+      const matches = (str.match(INFREQUENT_CHARS) as any);
+      if (matches && matches.length > 1) {
+        return true;
+      }
+      if (str.length > minLength) {
+        return true;
+      }
+      if (count > minInstances) {
+        return true;
+      }
+      return false;
+    };
+
     stringMap.forEach((values, key) => {
       const count = values.length;
-      if (this.shouldStringBeReplaced(key, count)) {
+      if (shouldStringBeReplaced(key, count)) {
         rankingMap.push([key, count]);
       }
     });
@@ -292,7 +372,9 @@ export default class Dedupe {
   }
 
   private getStartingPositionOfScope(scope: Block) {
-    let startingPos = scope.getChildAt(1).pos;
+    const firstChild = scope.getChildAt(0);
+    const secondChild = scope.getChildAt(1);
+    let startingPos = secondChild ? secondChild.getFullStart() : firstChild.getFullStart();
 
     // check the top level of the block for "use strict"
     forEachChild(scope, (expressionNode: Node) => {
