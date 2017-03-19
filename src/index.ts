@@ -16,7 +16,7 @@ export interface DedupeOptions {
    *    gzip - Apply an algorithm that works best for files that will be gzipped
    *    all -
    */
-  algorithm?: 'gzip' | 'all';
+  type?: 'gzip' | 'all';
   /**
    * Adds an IIFE around the entire script, this broadens the possible instances
    * where strings duplication could be consolidated
@@ -73,11 +73,11 @@ export default class Dedupe {
 
   private options: DedupeOptions = {
     addScope: false,
-    algorithm: 'gzip',
     cleanStrings: false,
     includeReplacements: false,
     minInstances: -1,
-    minLength: -1
+    minLength: -1,
+    type: 'gzip'
   };
 
   constructor(options?: DedupeOptions) {
@@ -108,7 +108,7 @@ export default class Dedupe {
       const usedNames = this.getUsedVariableNames(usedIdentifiers, topLevelScopes[i]);
       const stringMap = this.getStringMap(topLevelScopes[i]);
 
-      if (this.options.algorithm === 'gzip') {
+      if (this.options.type === 'gzip') {
         const scopeReplacements = this.getGzipStringReplacements(stringMap, startingPos, usedNames);
         replacements = replacements.concat(scopeReplacements);
       } else {
