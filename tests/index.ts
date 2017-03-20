@@ -3,22 +3,9 @@ import 'mocha';
 import { expect } from 'chai';
 import Dedupe from '../src/index';
 
-const dedupe = new Dedupe({
-  type: 'gzip',
-  minInstances: 2,
-  minLength: 2
-});
-const stringCleaner = new Dedupe({
-  type: 'all',
-  cleanStrings: true,
-  minInstances: 2,
-  minLength: 2
-});
+const dedupe = new Dedupe();
 const scopeAdder = new Dedupe({
-  addScope: true,
-  type: 'all',
-  minInstances: 2,
-  minLength: 2
+  addScope: true
 });
 
 const gzipSpace = Array(32800).join(' ');
@@ -122,18 +109,6 @@ describe('de-dupe', () => {
     expect((result.code.match(/z/g) as any[]).length).equal(1);
   });
 
-  it('will clean strings', () => {
-    const code = `
-      !function() {
-        console.log('z  ', ${gzipSpace} 'z  ', 'z  ', 'z  ', 'z  ', 'z  ', 'z  ', 'z  ');
-      }()
-    `;
-
-    const result = stringCleaner.dedupe(code);
-
-    expect(result.code).contain(`"z "`);
-  });
-
   it('will not effect non-function blocks', () => {
     const code = `
       if (true) {
@@ -210,6 +185,5 @@ describe('de-dupe', () => {
 
     expect(result.code).equal(expected);
   });
-
 
 });

@@ -12,9 +12,9 @@ import {
 
 export interface DedupeOptions {
   /**
-   * Specify the deduplication algorithm.
-   *    gzip - Apply an algorithm that works best for files that will be gzipped
-   *    all -
+   * Specify a de-duplication method
+   *    gzip - Works best for files that will be gzipped
+   *    all - Generic method to de-duplicate all strings
    */
   type?: 'gzip' | 'all';
   /**
@@ -23,20 +23,15 @@ export interface DedupeOptions {
    */
   addScope?: boolean;
   /**
-   * Removes duplicate spaces from strings, usually strings in javascript render
-   * to the DOM and more than one space in the DOM is ignored and just bloats scripts
-   */
-  cleanStrings?: boolean;
-  /**
    * Should the result include the replacements
    */
   includeReplacements?: boolean;
   /**
-   * Minimum number of string instances before de-dupe will replace the string.
+   * Minimum number of string instances before de-dupe will replace the string. (Only works when type === 'all')
    */
   minInstances?: number;
   /**
-   * Minimum length of the string before de-dupe will replace the string.
+   * Minimum length of the string before de-dupe will replace the string.  (Only works when type === 'all'
    */
   minLength?: number;
 }
@@ -61,19 +56,21 @@ export interface Result {
 const INFREQUENT_CHARS = /[\\\/kwzq]+/ig;
 const BOUNDARY = /\b/;
 const USE_STRICT = 'use strict';
-const RESERVED_WORDS = `
-  abstract arguments await boolean break byte case catch char class const continue debugger
-  default delete do double else enum eval export extends false final finally float for
-  function goto if implements import in instanceof int interface let long native new null
-  package private protected public return short static super switch synchronized this throw
-  throws transient true try typeof var void volatile while with yield`.trim().split(/[\s]+/g);
+const RESERVED_WORDS = [ 'abstract', 'arguments', 'await', 'boolean', 'break', 'byte', 'case',
+                         'catch', 'char', 'class', 'const', 'continue', 'debugger', 'default',
+                         'delete', 'do', 'double', 'else', 'enum', 'eval', 'export', 'extends',
+                         'false', 'final', 'finally', 'float', 'for', 'function', 'goto', 'if',
+                         'implements', 'import', 'in', 'instanceof', 'int', 'interface', 'let',
+                         'long', 'native', 'new', 'null', 'package', 'private', 'protected',
+                         'public', 'return', 'short', 'static', 'super', 'switch', 'synchronized',
+                         'this', 'throw', 'throws', 'transient', 'true', 'try', 'typeof', 'var',
+                         'void', 'volatile', 'while', 'with', 'yield'];
 
 export default class Dedupe {
   private attempt: number = 0;
 
   private options: DedupeOptions = {
     addScope: false,
-    cleanStrings: false,
     includeReplacements: false,
     minInstances: -1,
     minLength: -1,
@@ -352,7 +349,7 @@ export default class Dedupe {
       if (BOUNDARY.test(code.charAt(replacement.start - 1))) {
         codeBuffer.push(' ');
       }
-      codeBuffer.push(this.cleanString(replacement.text));
+      codeBuffer.push(replacement.text);
       if (BOUNDARY.test(code.charAt(replacement.end))) {
         codeBuffer.push(' ');
       }
@@ -390,12 +387,6 @@ export default class Dedupe {
     return startingPos;
   }
 
-  private cleanString(fatString: string): string {
-    return this.options.cleanStrings
-            ? fatString.replace(/[\s]+/g, ' ')
-            : fatString;
-  }
-
   private getTopLevelScopes(node?: Node) {
     if (typeof node === 'undefined') {
       return [];
@@ -415,10 +406,10 @@ export default class Dedupe {
     const found: Block[] = [];
     while (node) {
       if (
-          node.kind !== SyntaxKind.ArrowFunction &&
-          node.kind !== SyntaxKind.FunctionDeclaration &&
-          node.kind !== SyntaxKind.FunctionExpression &&
-          node.kind !== SyntaxKind.FunctionType
+        node.kind !== SyntaxKind.ArrowFunction &&
+        node.kind !== SyntaxKind.FunctionDeclaration &&
+        node.kind !== SyntaxKind.FunctionExpression &&
+        node.kind !== SyntaxKind.FunctionType
       ) {
         forEachChild(node, (childNode: Node) => {
           queue.push(childNode);
