@@ -16,7 +16,7 @@ if (!options.showHelp && options.files.length > 0) {
 }
 
 function processFiles(opt: typeof options) {
-  for (let file of opt.files) {
+  for (const file of opt.files) {
     readFile(file, 'utf-8', (err, code) => {
       if (err) {
         console.error(err);

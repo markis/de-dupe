@@ -36,11 +36,9 @@ export interface DedupeOptions {
   minLength?: number;
 }
 
-interface StringMap extends Map<string, StringLiteral[]> { }
+type StringMap = Map<string, StringLiteral[]>;
 
-interface StatementAction {
-  (statement: Node): void;
-}
+type StatementAction = (statement: Node) => void;
 
 export interface StringReplacement {
   end: number;
@@ -91,11 +89,11 @@ export default class Dedupe {
     let replacements: StringReplacement[] = [];
     const sourceFile = createSourceFile('', code, ScriptTarget.Latest, true);
     const topLevelScopes = this.getTopLevelScopes(sourceFile);
-    const identifiers = <Map<string, string>> (<any> sourceFile).identifiers;
+    const identifiers = (sourceFile as any).identifiers as Map<string, string>;
     const usedIdentifiers = new Map<string, string>(identifiers);
 
     const reservedWords = RESERVED_WORDS;
-    for (let word of reservedWords) {
+    for (const word of reservedWords) {
       usedIdentifiers.set(word, word);
     }
 
@@ -155,7 +153,7 @@ export default class Dedupe {
       }
     });
 
-    for (let key of stringKeysToReplace) {
+    for (const key of stringKeysToReplace) {
       const values = stringMap.get(key);
       if (!values) {
         break;
@@ -164,9 +162,9 @@ export default class Dedupe {
       variableDeclarationBuffer.push(`${variableName}=${JSON.stringify(key)}`);
 
       for (let j = 0, length = values.length; j < length; j++) {
-        let node = values[j];
-        let start = node.getStart();
-        let end = node.getEnd();
+        const node = values[j];
+        const start = node.getStart();
+        const end = node.getEnd();
 
         replacements.push({
           end,
@@ -192,7 +190,7 @@ export default class Dedupe {
                                    usedVariableNames: Map<string, string>): StringReplacement[] {
     const variableDeclarationBuffer: string[] = [];
     const replacements: StringReplacement[] = [];
-    let rankingMap: Array<Array<string | number>> = [];
+    const rankingMap: Array<Array<string | number>> = [];
 
     const minLength = typeof this.options.minLength === 'undefined' ? -1 : this.options.minLength;
     const minInstances = typeof this.options.minInstances === 'undefined' ? -1 : this.options.minInstances;
@@ -222,17 +220,17 @@ export default class Dedupe {
       return a[1] > b[1] ? 1 : a[1] < b[1] ? -1 : 0;
     });
 
-    for (let ranking of rankingMap) {
-      let key = ranking[0] as string;
-      let values = stringMap.get(key);
+    for (const ranking of rankingMap) {
+      const key = ranking[0] as string;
+      const values = stringMap.get(key);
       if (values) {
         const variableName = this.getUniqueVariableName(usedVariableNames);
         variableDeclarationBuffer.push(`${variableName}=${JSON.stringify(key)}`);
 
         for (let j = 0, length = values.length; j < length; j++) {
-          let node = values[j];
-          let start = node.getStart();
-          let end = node.getEnd();
+          const node = values[j];
+          const start = node.getStart();
+          const end = node.getEnd();
 
           replacements.push({
             end,
@@ -343,7 +341,7 @@ export default class Dedupe {
     const codeBuffer = [];
     let cursor = 0;
     for (let i = 0, length = sortedReplacements.length; i < length; i++) {
-      let replacement = sortedReplacements[i];
+      const replacement = sortedReplacements[i];
 
       codeBuffer.push(code.substring(cursor, replacement.start));
       if (BOUNDARY.test(code.charAt(replacement.start - 1))) {
@@ -394,7 +392,7 @@ export default class Dedupe {
 
     let scopes: Block[] = [];
     const functions = this.getTopLevelFunctions(node);
-    for (let functionNode of functions) {
+    for (const functionNode of functions) {
       const blocks = this.getTopLevelFunctionBlocks(functionNode);
       scopes = scopes.concat(blocks);
     }
