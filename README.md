@@ -63,3 +63,8 @@ Notice, the distance bits are only 15 (1-32768), which means the patterns have t
 #### Conclusion
 
 If your javascript is tiny and emmaculately procured down to it's smallest form. Then quite possibly this tool will not help you. It might actually make your gzip'd javascript larger. But I am guessing since you found this tool, you probably are looking for something to help make your javascript smaller.
+
+## Support on Beerpay
+Hey dude! Help me out for a couple of :beers:!
+
+[![Beerpay](https://beerpay.io/markis/de-dupe/badge.svg?style=beer-square)](https://beerpay.io/markis/de-dupe)  [![Beerpay](https://beerpay.io/markis/de-dupe/make-wish.svg?style=flat-square)](https://beerpay.io/markis/de-dupe?focus=wish)
