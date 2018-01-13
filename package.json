@@ -30,16 +30,16 @@
   },
   "homepage": "https://github.com/markis/de-dupe#readme",
   "dependencies": {
-    "typescript": "^2.3.2"
+    "typescript": "2.6.2"
   },
   "devDependencies": {
-    "@types/chai": "^4.0.0",
-    "@types/mocha": "^2.2.41",
-    "@types/node": "^8.0.0",
-    "chai": "^4.0.1",
-    "mocha": "^3.3.0",
-    "rollup": "^0.45.2",
-    "rollup-plugin-typescript": "^0.8.1",
-    "tslint": "^5.2.0"
+    "@types/chai": "4.1.0",
+    "@types/mocha": "2.2.46",
+    "@types/node": "9.3.0",
+    "chai": "4.1.2",
+    "mocha": "4.1.0",
+    "rollup": "0.54.0",
+    "rollup-plugin-typescript": "0.8.1",
+    "tslint": "5.9.1"
   }
 }

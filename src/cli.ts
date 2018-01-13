@@ -15,6 +15,10 @@ if (!options.showHelp && options.files.length > 0) {
   printHelp();
 }
 
+function noop() {
+  // do nothing
+}
+
 function processFiles(opt: typeof options) {
   for (const file of opt.files) {
     readFile(file, 'utf-8', (err, code) => {
@@ -23,7 +27,8 @@ function processFiles(opt: typeof options) {
       } else {
         const dedupe = new Dedupe(opt as DedupeOptions);
         const dedupedCode = dedupe.dedupe(code).code;
-        writeFile(file.replace('.js', '') + '.min.js', dedupedCode);
+        const minFileName = file.replace('.js', '') + '.min.js';
+        writeFile(minFileName, dedupedCode, noop);
       }
     });
   }
