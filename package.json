@@ -35,7 +35,7 @@
   "devDependencies": {
     "@types/chai": "4.1.0",
     "@types/mocha": "2.2.46",
-    "@types/node": "9.3.0",
+    "@types/node": "10.3.2",
     "chai": "4.1.2",
     "mocha": "4.1.0",
     "rollup": "0.54.0",
