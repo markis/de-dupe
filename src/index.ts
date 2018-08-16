@@ -129,7 +129,17 @@ export default class Dedupe {
     const gzipSlidingWindowSize = 32768;
     const stringKeysToReplace: string[] = [];
 
+    const minLength = typeof this.options.minLength === 'undefined' ? -1 : this.options.minLength;
+    const minInstances = typeof this.options.minInstances === 'undefined' ? -1 : this.options.minInstances;
+
     stringMap.forEach((values, key) => {
+      if (key.length < minLength) {
+        return;
+      }
+      if (values.length < minInstances) {
+        return;
+      }
+
       values = values.sort((a, b) => {
         const start1 = a.getStart();
         const start2 = b.getStart();
