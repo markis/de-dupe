@@ -34,6 +34,10 @@ export interface DedupeOptions {
    * Minimum length of the string before de-dupe will replace the string.  (Only works when type === 'all'
    */
   minLength?: number;
+  /**
+   * Variable naming characters to use
+   */
+  variableCharacters?: string;
 }
 
 type StringMap = Map<string, StringLiteral[]>;
@@ -52,6 +56,7 @@ export interface Result {
 }
 
 const INFREQUENT_CHARS = /[\\\/kwzq]+/ig;
+const DEFAULT_VARIABLE_CHARACTERS = '_eariotnslcu';
 const BOUNDARY = /\b/;
 const USE_STRICT = 'use strict';
 const RESERVED_WORDS = [ 'abstract', 'arguments', 'await', 'boolean', 'break', 'byte', 'case',
@@ -72,7 +77,8 @@ export default class Dedupe {
     includeReplacements: false,
     minInstances: -1,
     minLength: -1,
-    type: 'gzip'
+    type: 'gzip',
+    variableCharacters: DEFAULT_VARIABLE_CHARACTERS,
   };
 
   constructor(options?: DedupeOptions) {
@@ -327,7 +333,7 @@ export default class Dedupe {
   }
 
   private translateNumberToVariable(num: number): string {
-    const letters = '_eariotnslcu';
+    const letters = this.options.variableCharacters || DEFAULT_VARIABLE_CHARACTERS;
     const base = letters.length;
     let rixit; // like 'digit', only in some non-decimal radix
     let residual = Math.floor(num);
