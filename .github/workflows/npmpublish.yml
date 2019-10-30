@@ -40,7 +40,7 @@ jobs:
           registry-url: https://npm.pkg.github.com/
       - run: npm ci
       - run: |
-          npm config set registry https://npm.pkg.github.com/
+          npm config set registry https://npm.pkg.github.com/markis
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
