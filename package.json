@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/markis/de-dupe#readme",
   "dependencies": {
-    "typescript": "3.6.4"
+    "typescript": "3.8.3"
   },
   "devDependencies": {
     "@types/chai": "4.2.4",
