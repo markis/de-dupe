@@ -1,21 +1,15 @@
-var typescript = require('rollup-plugin-typescript');
+import typescript from "@rollup/plugin-typescript";
 
 module.exports = {
-  input: './src/index.ts',
+  input: "./src/index.ts",
   output: {
-    file: 'index.js',
-    format: 'cjs',
+    file: "index.js",
+    format: "cjs",
   },
-  external: [
-    'chai',
-    'fs',
-    'path',
-    'mocha',
-    'typescript'
-  ],
+  external: ["chai", "fs", "path", "mocha", "typescript"],
   plugins: [
     typescript({
-      typescript: require('typescript')
+      typescript: require("typescript"),
     }),
-  ]
+  ],
 };
