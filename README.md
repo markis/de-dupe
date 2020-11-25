@@ -1,6 +1,6 @@
 # De-dupe - a Javascript string minifier
 
-[![Build Status](https://travis-ci.org/markis/de-dupe.svg?branch=master)](https://travis-ci.org/markis/de-dupe) [![Known Vulnerabilities](https://snyk.io/test/github/markis/de-dupe/badge.svg)](https://snyk.io/test/github/markis/de-dupe) 
+![npm test](https://github.com/markis/de-dupe/workflows/npm%20test/badge.svg) [![Known Vulnerabilities](https://snyk.io/test/github/markis/de-dupe/badge.svg)](https://snyk.io/test/github/markis/de-dupe) 
 
 De-dupe is an asset minification process that will identify duplicate strings in all scopes of a javascript file and will introduce a variable instead of the string itself.  It does not introduce variables on the global scope, it will keep the variables to the individual scopes that it identifies.  It can also clean up strings so that they don't have large amounts of white space in them.
 
